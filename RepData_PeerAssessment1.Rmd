@@ -1,0 +1,138 @@
+---
+title: "Reproducible Research: Peer Assessment 1"
+author: "David Levy"
+date: "11/3/2020"
+output: 
+  html_document:
+    keep_md: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+### Loading and preprocessing the data
+
+We'll be making use of the `tidyverse` here, so we'll just load the whole library.
+
+```{r Calling the tidyverse library}
+library(tidyverse)
+```
+
+1. Load the data
+
+Let's begin by reading in our data to get a sense for what it looks like:
+
+```{r Loading and reading the data}
+
+# `read_csv` will automatically unzip our csv
+activity <- read_csv('activity.zip')
+
+# visualize the structure of our data
+str(activity)
+```
+
+Notice, we have the following columns, as described in the instructions:
+
+- **steps**: Number of steps taken in a $5$-minute interval (missing values coded as `NA`).
+
+- **date**: The date on which the measurement was taken in YYYY-MM-DD format.
+
+- **interval**: Identifier for the 5-minute interval in which measurement was taken.
+
+2. Process/transform the data (if necessary) into a format suitable for analysis
+
+The only modification that looks necessary in terms of adjusting the variable *classes* is that the interval should really be converted to a `date-time` object, which we can achieve by taking the results of the integer division (`%/%`) and modulus (`%%`) operators by $100$ to extract the hour and minute that respectively correspond to the interval provided.
+
+```{r Converting interval to a factor}
+
+# create an `hms` column corresponding to the interval for grouping and time series plotting
+activity <- activity %>%
+   mutate(intervalFactor = as.factor(activity$interval),
+          TimeHMS = hms::as_hms(paste(interval %/% 100, interval %% 100, '00', sep = ':'))
+   )
+
+# check to make sure the structure of activity changed accordingly
+str(activity)
+```
+
+
+### What is mean total number of steps taken per day?
+
+We will ignore missing values in the dataset to answer this question. 
+
+1. Make a histogram of the total number of steps taken each day.
+
+We will use the standard $30$ bins because it appears to produce a sufficiently granular plot for our purposes without compromising our ability to see overall trends.
+
+```{r Histogram of total number of daily steps}
+
+activity %>%
+   drop_na() %>%
+   group_by(date) %>% # group by date
+   summarise(StepSum = sum(steps, na.rm = TRUE)) %>% # sum the steps
+   ggplot() + # produce a histogram
+   geom_histogram(mapping = aes(StepSum),
+                  bins = 30,
+                  color = 'black',
+                  fill = 'light blue') + 
+   theme_bw() + # reformat for a more attractive aesthetic
+   theme(panel.grid.major = element_line(colour = "pink", size = 0.1))
+
+```
+
+We can now visualize that the distribution is fairly normal, with a relativelylarge number of days registering 0 steps (this is largely because of missing values, but we have been instructed to ignore missing values for this analysis), and another mode around $10,000$ steps, suggesting perhaps that this individual is using the $10,000$ steps marker as a goal and then either removing the device or spending the rest of the day sedentary.
+
+2. Calculate and report the **mean** and **median** total number of steps taken per day.
+
+```{r Calculating mean and median total steps}
+
+activity %>%
+   drop_na() %>% # remove NAs
+   group_by(date) %>% # group by day
+   summarise(StepSum = sum(steps, na.rm = TRUE)) %>% # calculate the daily sum of steps taken
+   summarise(DailyMeanSteps = mean(StepSum), # compute mean and median values of total steps over all days
+             DailyMedianSteps = median(StepSum))
+```
+
+It looks like (when ignoring time stamps with `NA` data rather than treating them as $0$ values) the mean total number of steps taken per day is $10,766.19$ and the median total number of steps taken per day is $10,765$, which confirms our observation that the distribution depicted in the histogram above is fairly normal.
+
+
+### What is the average daily activity pattern?
+
+1. Make a time series plot (i.e. `type = '1'`) of the $5$-minute interval ($x$-axis) and the average number of steps taken, averaged across all days ($y$-axis).
+
+```{r Time series of average steps taken in 5 minute intervals across all days}
+activity %>%
+   drop_na() %>% # remove NAs
+   group_by(TimeHMS) %>% # group by time interval
+   summarise(MeanSteps = mean(steps), # compute the mean steps taken in each interval
+             .groups = 'drop') %>% # allow grouping structure to drop
+   ggplot(aes(TimeHMS, MeanSteps)) + # prepare time series plot
+   geom_line(color = 'orange', size = 0.7) + # format
+   theme_bw() + 
+   theme(panel.grid.major = element_line(colour = "turquoise", size = 0.1))
+```
+
+The time series above indicates that on average, the bulk of this individuals steps are taken between between $8$:$30$a.m. and $10$a.m., with some additional high points in the early afternoon and early evening, suggesting a fairly regular daily schedule.
+
+2. Which $5$-minute interval, on average across all days in the dataset, contains the maximum number of steps?
+
+```{r }
+
+activity %>%
+   drop_na() %>% # remove NAs
+   group_by(TimeHMS) %>% # group by interval
+   summarise(MeanSteps = mean(steps), # compute mean steps in each interval over all days
+             .groups = 'drop') %>% # allow grouping to drop
+   arrange(desc(MeanSteps)) # arrange by calculated means in descending order
+```
+
+On average, across all days in the dataset, the $8$:$35$a.m. time interval contains the maximum number of steps.
+
+
+### Imputing missing values
+
+
+
+### Are there differences in activity patterns between weekdays and weekends?
