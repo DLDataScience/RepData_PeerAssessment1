@@ -239,7 +239,10 @@ On visual inspection, it seems that the estimates for average steps in each $5$-
 
 1. Create a new factor variable in the dataset with two levels — "weekday" and "weekend" — indicating whether a given date is a weekday or weekend day.
 
+```{r}
 
+weekday
+```
 
 
 2. Make a panel plot containing a time series plot of the $5$-minute interval ($x$-axis) and the average number of steps taken, averaged across all weekday days or weekend days ($y$-axis).
