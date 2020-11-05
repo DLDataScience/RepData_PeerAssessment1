@@ -18,6 +18,7 @@ We'll be making use of `tidyverse` and `lubridate` functions here, so we'll just
 ```{r Calling the tidyverse library}
 library(tidyverse)
 library(lubridate)
+library(ggpubr)
 ```
 
 1. Load the data
@@ -71,14 +72,16 @@ We will use the standard $30$ bins because it appears to produce a sufficiently 
 activity %>%
    drop_na() %>%
    group_by(date) %>% # group by date
-   summarise(StepSum = sum(steps, na.rm = TRUE)) %>% # sum the steps
+   summarise(StepSum = sum(steps, na.rm = TRUE),
+             .groups = 'drop') %>% # sum the steps
    ggplot() + # produce a histogram
    geom_histogram(mapping = aes(StepSum),
                   bins = 30,
                   color = 'black',
                   fill = 'light blue') + 
    theme_bw() + # reformat for a more attractive aesthetic
-   theme(panel.grid.major = element_line(colour = "pink", size = 0.1))
+   theme(panel.grid.major = element_line(colour = "pink", size = 0.1)) +
+   ggtitle('Histogram of Step Counts') + xlab('Total Daily Steps') + ylab('Frequency')
 
 ```
 
@@ -91,9 +94,11 @@ We can now visualize that the distribution is fairly normal, with a relativelyla
 activity %>%
    drop_na() %>% # remove NAs
    group_by(date) %>% # group by day
-   summarise(StepSum = sum(steps, na.rm = TRUE)) %>% # calculate the daily sum of steps taken
+   summarise(StepSum = sum(steps, na.rm = TRUE),
+             .groups = 'drop') %>% # calculate the daily sum of steps taken
    summarise(DailyMeanSteps = mean(StepSum), # compute mean and median values of total steps over all days
-             DailyMedianSteps = median(StepSum))
+             DailyMedianSteps = median(StepSum),
+             .groups = 'drop')
 ```
 
 It looks like (when ignoring time stamps with `NA` data rather than treating them as $0$ values) the mean total number of steps taken per day is $10,766.19$ and the median total number of steps taken per day is $10,765$, which confirms our observation that the distribution depicted in the histogram above is fairly normal.
@@ -112,7 +117,8 @@ activity %>%
    ggplot(aes(TimeHMS, MeanSteps)) + # prepare time series plot
    geom_line(color = 'orange', size = 0.7) + # format
    theme_bw() + 
-   theme(panel.grid.major = element_line(colour = "turquoise", size = 0.1))
+   theme(panel.grid.major = element_line(colour = "turquoise", size = 0.1)) +
+   ggtitle('Activity Time Series') + xlab('Typical Day') + ylab('Mean Steps')
 ```
 
 The time series above indicates that on average, the bulk of this individuals steps are taken between between $8$:$30$a.m. and $10$a.m., with some additional high points in the early afternoon and early evening, suggesting a fairly regular daily schedule.
@@ -126,7 +132,8 @@ activity %>%
    group_by(TimeHMS) %>% # group by interval
    summarise(MeanSteps = mean(steps), # compute mean steps in each interval over all days
              .groups = 'drop') %>% # allow grouping to drop
-   arrange(desc(MeanSteps)) # arrange by calculated means in descending order
+   arrange(desc(MeanSteps)) %>% # arrange by calculated means in descending order
+   head()
 ```
 
 On average, across all days in the dataset, the $8$:$35$a.m. time interval contains the maximum number of steps.
@@ -187,14 +194,16 @@ if(sum(is.na(imputedActivity$steps)) == 0){print('Looks good, amigo!')}
 
 imputedActivity %>%
    group_by(date) %>% # group by date
-   summarise(StepSum = sum(steps, na.rm = TRUE)) %>% # sum the steps
+   summarise(StepSum = sum(steps, na.rm = TRUE),
+             .groups = 'drop') %>% # sum the steps
    ggplot() + # produce a histogram
    geom_histogram(mapping = aes(StepSum),
                   bins = 30,
                   color = 'black',
                   fill = 'pink') + 
    theme_bw() + # reformat for a more attractive aesthetic
-   theme(panel.grid.major = element_line(colour = "light blue", size = 0.1))
+   theme(panel.grid.major = element_line(colour = "light blue", size = 0.1)) +
+   ggtitle('Histogram of Imputed Step Counts') + xlab('Total Daily Steps') + ylab('Frequency')
 ```
 It looks like we may have introduced a new mode at about the $1,200$-step marker. This is potentially an indication that we should have used another method for imputing data, but since that is not the focus of this assignment, we will simply move on for now.
 
@@ -202,9 +211,11 @@ It looks like we may have introduced a new mode at about the $1,200$-step marker
 
 imputedActivity %>%
    group_by(date) %>% # group by day
-   summarise(StepSum = sum(steps, na.rm = TRUE)) %>% # calculate the daily sum of steps taken
+   summarise(StepSum = sum(steps, na.rm = TRUE),
+             .groups = 'drop') %>% # calculate the daily sum of steps taken
    summarise(DailyMeanSteps = mean(StepSum), # compute mean and median values of total steps over all days
-             DailyMedianSteps = median(StepSum))
+             DailyMedianSteps = median(StepSum),
+             .groups = 'drop')
 ```
 
 Recall that when ignoring `NA` data the mean total number of steps taken per day is $10,766.19$ and the median total number of steps taken per day is $10,765$. Thus, it seems we have somewhat dramatically reduced both calculations with our imputation method. The underlying reason for the missing data may justify such a dampening effect, but we would need more information about the subject's lifestyle in order to determine whether our method can be considered reasonable.
@@ -220,16 +231,18 @@ unimputedMeans <- activity %>%
              .groups = 'drop') # allow grouping structure to drop
 
 imputedMeans <- imputedActivity %>%
-   drop_na() %>% # remove NAs
    group_by(TimeHMS) %>% # group by time interval
    summarise(MeanSteps = mean(steps), # compute the mean steps taken in each interval
              .groups = 'drop') # allow grouping structure to drop
    
 ggplot() + # prepare time series plot
-   geom_line(data = unimputedMeans, aes(TimeHMS, MeanSteps), color = 'orange', size = 0.7) + # format
-   geom_line(data = imputedMeans, aes(TimeHMS, MeanSteps), color = 'grey', size = 0.7) +
+   geom_line(data = unimputedMeans, aes(TimeHMS, MeanSteps, colour = 'orange'), size = 0.7) +
+    # format
+   geom_line(data = imputedMeans, aes(TimeHMS, MeanSteps, colour = 'grey'), size = 0.7) +
    theme_bw() + 
-   theme(panel.grid.major = element_line(colour = "turquoise", size = 0.1))
+   theme(panel.grid.major = element_line(colour = "light grey", size = 0.1)) +
+   ggtitle('Activity Time Series') + xlab('Typical Day') + ylab('Mean Steps') +
+   scale_color_discrete(name = "NA Method", labels = c("Impute", "Ignore"))
 ```
 
 On visual inspection, it seems that the estimates for average steps in each $5$-minute interval are lower across the board when we use our median imputing method. Thus, we would expect the estimated total daily number of steps to be lower than when missing data is simply ignored.
@@ -239,11 +252,52 @@ On visual inspection, it seems that the estimates for average steps in each $5$-
 
 1. Create a new factor variable in the dataset with two levels — "weekday" and "weekend" — indicating whether a given date is a weekday or weekend day.
 
-```{r}
+```{r Create a weekday factor variable}
 
-weekday
+# create a new variable based on the output of the `weekdays()` function
+activity$day.of.week <- weekdays(activity$date)
+
+# create a 2-level factor variable based on the day of the week
+activity$weekday <- factor(ifelse(activity$day.of.week %in% c('Saturday', 'Sunday'), 'weekend', 'weekday'))
+
 ```
 
 
 2. Make a panel plot containing a time series plot of the $5$-minute interval ($x$-axis) and the average number of steps taken, averaged across all weekday days or weekend days ($y$-axis).
 
+```{r Panel plot time series by weekday factor}
+
+# create a separate data frame filtered by weekday factor
+weekdayActivity <- activity %>%
+   drop_na() %>% # remove NAs
+   filter(weekday == 'weekday') %>%
+   group_by(TimeHMS) %>% # group by time interval
+   summarise(MeanSteps = mean(steps), # compute the mean steps taken in each interval
+             .groups = 'drop') # allow grouping structure to drop
+
+# create a separate data frame filtered by weekend factor
+weekendActivity <- activity %>%
+   drop_na() %>% # remove NAs
+   filter(weekday == 'weekend') %>%
+   group_by(TimeHMS) %>% # group by time interval
+   summarise(MeanSteps = mean(steps), # compute the mean steps taken in each interval
+             .groups = 'drop') # allow grouping structure to drop
+
+
+# generate plots
+weekdayPlot <- ggplot() + # prepare time series plot
+   geom_line(data = weekdayActivity, aes(TimeHMS, MeanSteps), color = 'light blue', size = 0.7) + # format
+   theme_bw() + 
+   theme(panel.grid.major = element_line(colour = "light grey", size = 0.1)) +
+   ggtitle('Activity Time Series by Weekday') + xlab('Typical Weekday') + ylab('Mean Steps')
+
+weekendPlot <- ggplot() + # prepare time series plot
+   geom_line(data = weekendActivity, aes(TimeHMS, MeanSteps), color = 'pink', size = 0.7) + # format
+   theme_bw() + 
+   theme(panel.grid.major = element_line(colour = "light grey", size = 0.1)) +
+   ggtitle('Activity Time Series by Weekend') + xlab('Typical Weekend Day') + ylab('Mean Steps')
+
+# arrange and display plots
+ggarrange(weekdayPlot, weekendPlot, nrow = 2)
+
+```

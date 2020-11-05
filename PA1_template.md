@@ -50,6 +50,10 @@ library(lubridate)
 ##     date, intersect, setdiff, union
 ```
 
+```r
+library(ggpubr)
+```
+
 1. Load the data
 
 Let's begin by reading in our data to get a sense for what it looks like:
@@ -142,18 +146,16 @@ We will use the standard $30$ bins because it appears to produce a sufficiently 
 activity %>%
    drop_na() %>%
    group_by(date) %>% # group by date
-   summarise(StepSum = sum(steps, na.rm = TRUE)) %>% # sum the steps
+   summarise(StepSum = sum(steps, na.rm = TRUE),
+             .groups = 'drop') %>% # sum the steps
    ggplot() + # produce a histogram
    geom_histogram(mapping = aes(StepSum),
                   bins = 30,
                   color = 'black',
                   fill = 'light blue') + 
    theme_bw() + # reformat for a more attractive aesthetic
-   theme(panel.grid.major = element_line(colour = "pink", size = 0.1))
-```
-
-```
-## `summarise()` ungrouping output (override with `.groups` argument)
+   theme(panel.grid.major = element_line(colour = "pink", size = 0.1)) +
+   ggtitle('Histogram of Step Counts') + xlab('Total Daily Steps') + ylab('Frequency')
 ```
 
 ![](PA1_template_files/figure-html/Histogram of total number of daily steps-1.png)<!-- -->
@@ -167,13 +169,11 @@ We can now visualize that the distribution is fairly normal, with a relativelyla
 activity %>%
    drop_na() %>% # remove NAs
    group_by(date) %>% # group by day
-   summarise(StepSum = sum(steps, na.rm = TRUE)) %>% # calculate the daily sum of steps taken
+   summarise(StepSum = sum(steps, na.rm = TRUE),
+             .groups = 'drop') %>% # calculate the daily sum of steps taken
    summarise(DailyMeanSteps = mean(StepSum), # compute mean and median values of total steps over all days
-             DailyMedianSteps = median(StepSum))
-```
-
-```
-## `summarise()` ungrouping output (override with `.groups` argument)
+             DailyMedianSteps = median(StepSum),
+             .groups = 'drop')
 ```
 
 ```
@@ -200,7 +200,8 @@ activity %>%
    ggplot(aes(TimeHMS, MeanSteps)) + # prepare time series plot
    geom_line(color = 'orange', size = 0.7) + # format
    theme_bw() + 
-   theme(panel.grid.major = element_line(colour = "turquoise", size = 0.1))
+   theme(panel.grid.major = element_line(colour = "turquoise", size = 0.1)) +
+   ggtitle('Activity Time Series') + xlab('Typical Day') + ylab('Mean Steps')
 ```
 
 ![](PA1_template_files/figure-html/Time series of average steps taken in 5 minute intervals across all days-1.png)<!-- -->
@@ -216,24 +217,20 @@ activity %>%
    group_by(TimeHMS) %>% # group by interval
    summarise(MeanSteps = mean(steps), # compute mean steps in each interval over all days
              .groups = 'drop') %>% # allow grouping to drop
-   arrange(desc(MeanSteps)) # arrange by calculated means in descending order
+   arrange(desc(MeanSteps)) %>% # arrange by calculated means in descending order
+   head()
 ```
 
 ```
-## # A tibble: 288 x 2
-##    TimeHMS MeanSteps
-##    <time>      <dbl>
-##  1 08:35        206.
-##  2 08:40        196.
-##  3 08:50        183.
-##  4 08:45        180.
-##  5 08:30        177.
-##  6 08:20        171.
-##  7 08:55        167.
-##  8 08:15        158.
-##  9 08:25        155.
-## 10 09:00        143.
-## # … with 278 more rows
+## # A tibble: 6 x 2
+##   TimeHMS MeanSteps
+##   <time>      <dbl>
+## 1 08:35        206.
+## 2 08:40        196.
+## 3 08:50        183.
+## 4 08:45        180.
+## 5 08:30        177.
+## 6 08:20        171.
 ```
 
 On average, across all days in the dataset, the $8$:$35$a.m. time interval contains the maximum number of steps.
@@ -302,18 +299,16 @@ if(sum(is.na(imputedActivity$steps)) == 0){print('Looks good, amigo!')}
 ```r
 imputedActivity %>%
    group_by(date) %>% # group by date
-   summarise(StepSum = sum(steps, na.rm = TRUE)) %>% # sum the steps
+   summarise(StepSum = sum(steps, na.rm = TRUE),
+             .groups = 'drop') %>% # sum the steps
    ggplot() + # produce a histogram
    geom_histogram(mapping = aes(StepSum),
                   bins = 30,
                   color = 'black',
                   fill = 'pink') + 
    theme_bw() + # reformat for a more attractive aesthetic
-   theme(panel.grid.major = element_line(colour = "light blue", size = 0.1))
-```
-
-```
-## `summarise()` ungrouping output (override with `.groups` argument)
+   theme(panel.grid.major = element_line(colour = "light blue", size = 0.1)) +
+   ggtitle('Histogram of Imputed Step Counts') + xlab('Total Daily Steps') + ylab('Frequency')
 ```
 
 ![](PA1_template_files/figure-html/Histogram of total number of daily steps with imputed data-1.png)<!-- -->
@@ -323,13 +318,11 @@ It looks like we may have introduced a new mode at about the $1,200$-step marker
 ```r
 imputedActivity %>%
    group_by(date) %>% # group by day
-   summarise(StepSum = sum(steps, na.rm = TRUE)) %>% # calculate the daily sum of steps taken
+   summarise(StepSum = sum(steps, na.rm = TRUE),
+             .groups = 'drop') %>% # calculate the daily sum of steps taken
    summarise(DailyMeanSteps = mean(StepSum), # compute mean and median values of total steps over all days
-             DailyMedianSteps = median(StepSum))
-```
-
-```
-## `summarise()` ungrouping output (override with `.groups` argument)
+             DailyMedianSteps = median(StepSum),
+             .groups = 'drop')
 ```
 
 ```
@@ -352,16 +345,18 @@ unimputedMeans <- activity %>%
              .groups = 'drop') # allow grouping structure to drop
 
 imputedMeans <- imputedActivity %>%
-   drop_na() %>% # remove NAs
    group_by(TimeHMS) %>% # group by time interval
    summarise(MeanSteps = mean(steps), # compute the mean steps taken in each interval
              .groups = 'drop') # allow grouping structure to drop
    
 ggplot() + # prepare time series plot
-   geom_line(data = unimputedMeans, aes(TimeHMS, MeanSteps), color = 'orange', size = 0.7) + # format
-   geom_line(data = imputedMeans, aes(TimeHMS, MeanSteps), color = 'grey', size = 0.7) +
+   geom_line(data = unimputedMeans, aes(TimeHMS, MeanSteps, colour = 'orange'), size = 0.7) +
+    # format
+   geom_line(data = imputedMeans, aes(TimeHMS, MeanSteps, colour = 'grey'), size = 0.7) +
    theme_bw() + 
-   theme(panel.grid.major = element_line(colour = "turquoise", size = 0.1))
+   theme(panel.grid.major = element_line(colour = "light grey", size = 0.1)) +
+   ggtitle('Activity Time Series') + xlab('Typical Day') + ylab('Mean Steps') +
+   scale_color_discrete(name = "NA Method", labels = c("Impute", "Ignore"))
 ```
 
 ![](PA1_template_files/figure-html/Time series of average steps taken in 5 minute intervals across all days with imputed data-1.png)<!-- -->
@@ -374,7 +369,51 @@ On visual inspection, it seems that the estimates for average steps in each $5$-
 1. Create a new factor variable in the dataset with two levels — "weekday" and "weekend" — indicating whether a given date is a weekday or weekend day.
 
 
+```r
+# create a new variable based on the output of the `weekdays()` function
+activity$day.of.week <- weekdays(activity$date)
+
+# create a 2-level factor variable based on the day of the week
+activity$weekday <- factor(ifelse(activity$day.of.week %in% c('Saturday', 'Sunday'), 'weekend', 'weekday'))
+```
 
 
 2. Make a panel plot containing a time series plot of the $5$-minute interval ($x$-axis) and the average number of steps taken, averaged across all weekday days or weekend days ($y$-axis).
 
+
+```r
+# create a separate data frame filtered by weekday factor
+weekdayActivity <- activity %>%
+   drop_na() %>% # remove NAs
+   filter(weekday == 'weekday') %>%
+   group_by(TimeHMS) %>% # group by time interval
+   summarise(MeanSteps = mean(steps), # compute the mean steps taken in each interval
+             .groups = 'drop') # allow grouping structure to drop
+
+# create a separate data frame filtered by weekend factor
+weekendActivity <- activity %>%
+   drop_na() %>% # remove NAs
+   filter(weekday == 'weekend') %>%
+   group_by(TimeHMS) %>% # group by time interval
+   summarise(MeanSteps = mean(steps), # compute the mean steps taken in each interval
+             .groups = 'drop') # allow grouping structure to drop
+
+
+# generate plots
+weekdayPlot <- ggplot() + # prepare time series plot
+   geom_line(data = weekdayActivity, aes(TimeHMS, MeanSteps), color = 'light blue', size = 0.7) + # format
+   theme_bw() + 
+   theme(panel.grid.major = element_line(colour = "light grey", size = 0.1)) +
+   ggtitle('Activity Time Series by Weekday') + xlab('Typical Weekday') + ylab('Mean Steps')
+
+weekendPlot <- ggplot() + # prepare time series plot
+   geom_line(data = weekendActivity, aes(TimeHMS, MeanSteps), color = 'pink', size = 0.7) + # format
+   theme_bw() + 
+   theme(panel.grid.major = element_line(colour = "light grey", size = 0.1)) +
+   ggtitle('Activity Time Series by Weekend') + xlab('Typical Weekend Day') + ylab('Mean Steps')
+
+# arrange and display plots
+ggarrange(weekdayPlot, weekendPlot, nrow = 2)
+```
+
+![](PA1_template_files/figure-html/Panel plot time series by weekday factor-1.png)<!-- -->
